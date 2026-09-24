@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Tableau de bord visuel de détection des régimes de marché pour EUR/USD en H4.">
+  <title>Market Regime Lab</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">MARKET REGIME LAB</p>
+      <h1>EUR/USD <span>· H4</span></h1>
+    </div>
+    <div class="freshness" id="freshness"><span class="status-dot"></span>Chargement des données…</div>
+  </header>
+
+  <main>
+    <section class="summary" aria-label="État actuel">
+      <article class="regime-card">
+        <div>
+          <p class="label">Régime détecté</p>
+          <h2 id="regime-name">—</h2>
+          <p id="regime-note">Analyse de la dernière bougie clôturée</p>
+        </div>
+        <div class="confidence-ring" id="confidence-ring" aria-label="Confiance">
+          <strong id="confidence">—</strong><span>confiance</span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <p class="label">Tendance</p>
+        <strong id="trend-value">—</strong>
+        <span id="trend-detail">Pente EMA / ATR</span>
+      </article>
+      <article class="metric-card">
+        <p class="label">Momentum</p>
+        <strong id="rsi-value">—</strong>
+        <span>RSI 14</span>
+      </article>
+      <article class="metric-card">
+        <p class="label">Volatilité</p>
+        <strong id="atr-value">—</strong>
+        <span id="atr-detail">Percentile ATR 14</span>
+      </article>
+    </section>
+
+    <nav class="range-picker" aria-label="Période affichée">
+      <span>Période</span>
+      <button type="button" data-range="90">3 mois</button>
+      <button type="button" data-range="180" class="active" aria-pressed="true">6 mois</button>
+      <button type="button" data-range="365">1 an</button>
+    </nav>
+
+    <section class="chart-grid">
+      <article class="chart-panel price-panel">
+        <div class="panel-heading">
+          <div><p class="label">CONTEXTE TEMPOREL</p><h2>Prix, EMA 50 et régimes</h2></div>
+          <div class="legend" aria-label="Légende">
+            <span><i class="line price"></i>Prix</span>
+            <span><i class="line ema"></i>EMA 50</span>
+          </div>
+        </div>
+        <div class="chart" id="price-chart" role="img" aria-label="Évolution du prix EUR/USD, EMA 50 et régimes"></div>
+        <div class="regime-strip" id="regime-strip" aria-label="Frise des régimes"></div>
+      </article>
+
+      <article class="chart-panel state-panel">
+        <div class="panel-heading">
+          <div><p class="label">ESPACE DES ÉTATS</p><h2>Trajectoire du marché</h2></div>
+          <span class="live-key"><i></i>État actuel</span>
+        </div>
+        <div class="chart" id="state-chart" role="img" aria-label="Espace des états : pente EMA normalisée et RSI"></div>
+        <div class="axis-help">
+          <span>← tendance baissière</span><span>tendance haussière →</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="learning-grid">
+      <article class="decision-panel">
+        <p class="label">LECTURE DU SYSTÈME</p>
+        <h2 id="decision-title">Pourquoi ce régime ?</h2>
+        <ul id="decision-list"></ul>
+        <p class="warning">Outil d'analyse et d'apprentissage — pas un conseil d'investissement ni un signal d'ordre automatique.</p>
+      </article>
+      <article class="map-panel">
+        <p class="label">COMMENT LIRE LA CARTE</p>
+        <div class="map-row"><span class="arrow">→</span><div><strong>Déplacement horizontal</strong><p>Évolution de la tendance, mesurée par la pente de l'EMA rapportée à l'ATR.</p></div></div>
+        <div class="map-row"><span class="arrow">↑</span><div><strong>Déplacement vertical</strong><p>Renforcement ou affaiblissement du momentum via le RSI.</p></div></div>
+        <div class="map-row"><span class="heat"></span><div><strong>Couleur du point</strong><p>Volatilité faible, normale ou élevée selon le percentile de l'ATR.</p></div></div>
+      </article>
+    </section>
+  </main>
+
+  <div class="tooltip" id="tooltip" hidden></div>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>
