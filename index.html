@@ -69,10 +69,16 @@
       <article class="chart-panel state-panel">
         <div class="panel-heading">
           <div><p class="label">ESPACE DES ÉTATS</p><h2>Trajectoire du marché</h2></div>
-          <span class="live-key"><i></i>État actuel</span>
+          <div class="state-controls">
+            <div class="view-toggle" aria-label="Dimension de la carte">
+              <button type="button" data-state-mode="2d">2D</button>
+              <button type="button" data-state-mode="3d">3D</button>
+            </div>
+            <span class="live-key"><i></i>État actuel</span>
+          </div>
         </div>
-        <div class="chart" id="state-chart" role="img" aria-label="Espace des états : pente EMA normalisée et RSI"></div>
-        <div class="axis-help">
+        <div class="chart" id="state-chart" role="img" aria-label="Espace des états du marché en deux ou trois dimensions"></div>
+        <div class="axis-help" id="axis-help">
           <span>← tendance baissière</span><span>tendance haussière →</span>
         </div>
       </article>
@@ -89,12 +95,14 @@
         <p class="label">COMMENT LIRE LA CARTE</p>
         <div class="map-row"><span class="arrow">→</span><div><strong>Déplacement horizontal</strong><p>Évolution de la tendance, mesurée par la pente de l'EMA rapportée à l'ATR.</p></div></div>
         <div class="map-row"><span class="arrow">↑</span><div><strong>Déplacement vertical</strong><p>Renforcement ou affaiblissement du momentum via le RSI.</p></div></div>
-        <div class="map-row"><span class="heat"></span><div><strong>Couleur du point</strong><p>Volatilité faible, normale ou élevée selon le percentile de l'ATR.</p></div></div>
+        <div class="map-row"><span class="depth">◇</span><div><strong>Profondeur en 3D</strong><p>Distance du prix à l’EMA 50, exprimée en unités d’ATR.</p></div></div>
+        <div class="map-row"><span class="heat"></span><div><strong>Couleur du point</strong><p>Volatilité faible, normale ou élevée selon le percentile de l’ATR.</p></div></div>
       </article>
     </section>
   </main>
 
   <div class="tooltip" id="tooltip" hidden></div>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
   <script src="assets/app.js" defer></script>
 </body>
 </html>
