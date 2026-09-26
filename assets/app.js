@@ -140,16 +140,51 @@ function drawPrice() {
 
 function stateData() {
   const source = currentSlice().filter(d => Number.isFinite(d.slope_atr) && Number.isFinite(d.rsi));
-  return { source, data: source.slice(-90) };
+  const history = source.slice(-180);
+  return { source, history, recent: history.slice(-30) };
+}
+
+function recentStateNarrative(data) {
+  if (data.length < 7) return "Pas encore assez de données pour décrire la trajectoire récente.";
+  const now = data.at(-1), before = data.at(-7);
+  const ds = now.slope_atr - before.slope_atr;
+  const dr = now.rsi - before.rsi;
+  const dv = now.atr_percentile - before.atr_percentile;
+  const direction = Math.abs(ds) < .015 ? "reste presque horizontale" : ds > 0 ? "se déplace vers une tendance plus haussière" : "se déplace vers une tendance plus baissière";
+  const momentum = Math.abs(dr) < 4 ? "momentum stable" : dr > 0 ? "momentum en renforcement" : "momentum en affaiblissement";
+  const volatility = Math.abs(dv) < 8 ? "volatilité stable" : dv > 0 ? "volatilité en hausse" : "volatilité en baisse";
+  return `Sur les 6 dernières bougies, la trajectoire ${direction} : ${momentum}, ${volatility}. Régime actuel : ${now.regime.toLowerCase()}.`;
+}
+
+function addDirectionArrow(svg, x1, y1, x2, y2) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const size = 5.5, back = 7;
+  const cx = x2 - Math.cos(angle) * 3, cy = y2 - Math.sin(angle) * 3;
+  const points = [
+    [cx, cy],
+    [cx - Math.cos(angle - .55) * back, cy - Math.sin(angle - .55) * back],
+    [cx - Math.cos(angle + .55) * back, cy - Math.sin(angle + .55) * back]
+  ].map(p => p.join(",")).join(" ");
+  svg.appendChild(svgEl("polygon", { points, class: "direction-arrow", transform: `scale(${size / 5.5})` }));
 }
 
 function drawState2D() {
-  const { source, data } = stateData();
+  const { source, history, recent } = stateData();
+  document.getElementById("state-narrative").textContent = recentStateNarrative(recent);
   const c = baseChart(document.getElementById("state-chart"), { top: 12, right: 18, bottom: 32, left: 48 });
   const { svg, width, height, margins: m, plotW, plotH } = c;
   const maxAbs = Math.max(.12, ...source.map(d => Math.abs(d.slope_atr))) * 1.08;
   const x = scale([-maxAbs, maxAbs], [m.left, m.left + plotW]);
   const y = scale([20, 80], [m.top + plotH, m.top]);
+  const zones = [
+    [-maxAbs, -.03, "#ff7183", "BAISSIER"],
+    [-.03, .03, "#8d79b8", "NEUTRE"],
+    [.03, maxAbs, "#38cfa5", "HAUSSIER"]
+  ];
+  zones.forEach(([a,b,color,label]) => {
+    svg.appendChild(svgEl("rect", { x: x(a), y: m.top, width: Math.max(0, x(b) - x(a)), height: plotH, fill: color, opacity: .045 }));
+    const t = svgEl("text", { x: (x(a) + x(b)) / 2, y: m.top + 12, "text-anchor": "middle", class: "state-zone-label" }); t.textContent = label; svg.appendChild(t);
+  });
   [20, 40, 60, 80].forEach(v => {
     const yy = y(v); svg.appendChild(svgEl("line", { x1: m.left, x2: width - m.right, y1: yy, y2: yy, class: "grid-line" }));
     const t = svgEl("text", { x: m.left - 8, y: yy + 4, "text-anchor": "end" }); t.textContent = v; svg.appendChild(t);
@@ -158,12 +193,21 @@ function drawState2D() {
     const v = maxAbs * f, xx = x(v); svg.appendChild(svgEl("line", { x1: xx, x2: xx, y1: m.top, y2: m.top + plotH, class: f === 0 ? "axis-line" : "grid-line" }));
     const t = svgEl("text", { x: xx, y: height - 7, "text-anchor": "middle" }); t.textContent = v.toFixed(2); svg.appendChild(t);
   });
-  svg.appendChild(svgEl("path", { d: data.map((d, i) => `${i ? "L" : "M"}${x(d.slope_atr)},${y(clamp(d.rsi,20,80))}`).join(" "), class: "state-path" }));
-  data.forEach((d, i) => {
-    const p = svgEl("circle", { cx: x(d.slope_atr), cy: y(clamp(d.rsi,20,80)), r: i === data.length - 1 ? 7 : 3.2, fill: volatilityColor(d.atr_percentile), opacity: i === data.length - 1 ? 1 : .48, class: `point ${i === data.length - 1 ? "current" : ""}` });
+  history.slice(0, -30).forEach((d, i, old) => svg.appendChild(svgEl("circle", { cx: x(d.slope_atr), cy: y(clamp(d.rsi,20,80)), r: 1.5 + 1.2 * i / Math.max(1,old.length), opacity: .08 + .18 * i / Math.max(1,old.length), class: "history-point" })));
+  recent.slice(1).forEach((d, i) => {
+    const prev = recent[i];
+    const x1=x(prev.slope_atr), y1=y(clamp(prev.rsi,20,80)), x2=x(d.slope_atr), y2=y(clamp(d.rsi,20,80));
+    svg.appendChild(svgEl("line", { x1, y1, x2, y2, opacity: .18 + .72 * (i + 1) / recent.length, class: "trajectory-segment" }));
+    if ((i + 1) % 6 === 0 || i === recent.length - 2) addDirectionArrow(svg, x1, y1, x2, y2);
+  });
+  recent.forEach((d, i) => {
+    const isCurrent = i === recent.length - 1;
+    const p = svgEl("circle", { cx: x(d.slope_atr), cy: y(clamp(d.rsi,20,80)), r: isCurrent ? 7.5 : 2.2 + 2.1 * i / recent.length, fill: volatilityColor(d.atr_percentile), opacity: .3 + .7 * (i + 1) / recent.length, class: `point ${isCurrent ? "current" : ""}` });
     p.addEventListener("pointerenter", (e) => { tooltip.hidden = false; tooltip.style.left = `${Math.min(e.clientX + 12, innerWidth - 190)}px`; tooltip.style.top = `${Math.max(8, e.clientY - 80)}px`; tooltip.innerHTML = `<strong>${fmtDate(d.time)}</strong><span>Pente</span> ${d.slope_atr.toFixed(3)} ATR<br><span>RSI</span> ${d.rsi.toFixed(1)}<br><span>Volatilité</span> ${Math.round(d.atr_percentile)}e pct.`; });
     p.addEventListener("pointerleave", () => tooltip.hidden = true); svg.appendChild(p);
   });
+  const current = recent.at(-1);
+  const label = svgEl("text", { x: x(current.slope_atr) + 11, y: y(clamp(current.rsi,20,80)) - 10, class: "now-label" }); label.textContent = "MAINTENANT"; svg.appendChild(label);
 }
 
 function drawState3D() {
@@ -173,42 +217,50 @@ function drawState3D() {
     drawState2D();
     return;
   }
-  const { data } = stateData();
+  const { history, recent } = stateData();
+  document.getElementById("state-narrative").textContent = recentStateNarrative(recent);
   const container = document.getElementById("state-chart");
   container.innerHTML = "";
-  const zValues = data.map(d => (d.close - d.ema50) / d.atr);
-  const commonHover = data.map(d => [fmtDate(d.time), d.regime, d.atr_percentile]);
+  const old = history.slice(0, -30);
+  const oldTrace = {
+    type: "scatter3d", mode: "markers",
+    x: old.map(d=>d.slope_atr), y: old.map(d=>d.rsi), z: old.map(d=>(d.close-d.ema50)/d.atr),
+    marker: { size: 2, color: "#728394", opacity: .16 }, hoverinfo: "skip", name: "Historique"
+  };
+  const zValues = recent.map(d => (d.close - d.ema50) / d.atr);
+  const commonHover = recent.map(d => [fmtDate(d.time), d.regime, d.atr_percentile]);
   const trajectory = {
     type: "scatter3d",
     mode: "lines+markers",
-    x: data.map(d => d.slope_atr),
-    y: data.map(d => d.rsi),
+    x: recent.map(d => d.slope_atr),
+    y: recent.map(d => d.rsi),
     z: zValues,
     customdata: commonHover,
-    line: { color: "rgba(234,242,247,.32)", width: 3 },
+    line: { color: "rgba(234,242,247,.72)", width: 4 },
     marker: {
-      size: 3.2,
-      color: data.map(d => d.atr_percentile),
+      size: recent.map((_,i)=>2.5 + 3.5*(i+1)/recent.length),
+      color: recent.map(d => d.atr_percentile),
       cmin: 0, cmax: 100,
       colorscale: [[0,"#6ca9ff"],[.5,"#f6c453"],[1,"#ff7183"]],
-      opacity: .72,
+      opacity: .86,
       showscale: false
     },
     hovertemplate: "<b>%{customdata[0]}</b><br>Pente : %{x:.3f} ATR/bar<br>RSI : %{y:.1f}<br>Distance : %{z:.2f} ATR<br>Volatilité : %{customdata[2]:.0f}e pct.<br>Régime : %{customdata[1]}<extra></extra>",
     name: "Trajectoire"
   };
-  const current = data.at(-1);
+  const current = recent.at(-1);
   const currentTrace = {
     type: "scatter3d",
-    mode: "markers",
+    mode: "markers+text",
     x: [current.slope_atr], y: [current.rsi], z: [(current.close - current.ema50) / current.atr],
     customdata: [[fmtDate(current.time), current.regime, current.atr_percentile]],
     marker: { size: 8, color: volatilityColor(current.atr_percentile), line: { color: "#eaf2f7", width: 3 }, opacity: 1 },
+    text: ["MAINTENANT"], textposition: "top center", textfont: { color: "#eaf2f7", size: 11 },
     hovertemplate: "<b>État actuel</b><br>%{customdata[0]}<br>Pente : %{x:.3f} ATR/bar<br>RSI : %{y:.1f}<br>Distance : %{z:.2f} ATR<br>Régime : %{customdata[1]}<extra></extra>",
     name: "État actuel"
   };
   const axis = (title) => ({ title: { text: title, font: { size: 11, color: "#8fa1b2" } }, color: "#8fa1b2", gridcolor: "rgba(143,161,178,.16)", zerolinecolor: "rgba(143,161,178,.34)", backgroundcolor: "rgba(8,13,19,.18)", showbackground: true, tickfont: { size: 10 } });
-  Plotly.newPlot(container, [trajectory, currentTrace], {
+  Plotly.newPlot(container, [oldTrace, trajectory, currentTrace], {
     margin: { l: 0, r: 0, t: 0, b: 0 },
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
