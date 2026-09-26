@@ -86,8 +86,8 @@ main { max-width: 1440px; margin: auto; padding: 0 34px 48px; }
 .ema-path { fill: none; stroke: var(--amber); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
 .state-path { fill: none; stroke: rgba(234,242,247,.3); stroke-width: 1.2; }
 .history-point { fill: #728394; }
-.trajectory-segment { stroke: var(--text); stroke-width: 1.8; vector-effect: non-scaling-stroke; }
-.direction-arrow { fill: var(--text); opacity: .88; }
+.trajectory-segment { stroke: #b9c7d2; stroke-width: 2.15; vector-effect: non-scaling-stroke; }
+.direction-arrow { fill: #aebdca; opacity: .62; }
 .now-label { fill: var(--text) !important; font-size: 10px !important; font-weight: 800; letter-spacing: .08em; }
 .state-zone-label { font-size: 9px !important; letter-spacing: .08em; opacity: .58; }
 .point { stroke: var(--panel); stroke-width: 1.2; }

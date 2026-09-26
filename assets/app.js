@@ -160,14 +160,14 @@ function recentStateNarrative(data) {
 
 function addDirectionArrow(svg, x1, y1, x2, y2) {
   const angle = Math.atan2(y2 - y1, x2 - x1);
-  const size = 5.5, back = 7;
-  const cx = x2 - Math.cos(angle) * 3, cy = y2 - Math.sin(angle) * 3;
+  const back = 6.5;
+  const cx = x1 + (x2 - x1) * .62, cy = y1 + (y2 - y1) * .62;
   const points = [
     [cx, cy],
     [cx - Math.cos(angle - .55) * back, cy - Math.sin(angle - .55) * back],
     [cx - Math.cos(angle + .55) * back, cy - Math.sin(angle + .55) * back]
   ].map(p => p.join(",")).join(" ");
-  svg.appendChild(svgEl("polygon", { points, class: "direction-arrow", transform: `scale(${size / 5.5})` }));
+  svg.appendChild(svgEl("polygon", { points, class: "direction-arrow" }));
 }
 
 function drawState2D() {
@@ -199,8 +199,8 @@ function drawState2D() {
   recent.slice(1).forEach((d, i) => {
     const prev = recent[i];
     const x1=x(prev.slope_atr), y1=y(clamp(prev.rsi,20,80)), x2=x(d.slope_atr), y2=y(clamp(d.rsi,20,80));
-    svg.appendChild(svgEl("line", { x1, y1, x2, y2, opacity: .18 + .72 * (i + 1) / recent.length, class: "trajectory-segment" }));
-    if ((i + 1) % 6 === 0 || i === recent.length - 2) addDirectionArrow(svg, x1, y1, x2, y2);
+    svg.appendChild(svgEl("line", { x1, y1, x2, y2, opacity: .32 + .48 * (i + 1) / recent.length, class: "trajectory-segment" }));
+    if (Math.hypot(x2 - x1, y2 - y1) > 7) addDirectionArrow(svg, x1, y1, x2, y2);
   });
   recent.forEach((d, i) => {
     const isCurrent = i === recent.length - 1;
@@ -284,8 +284,26 @@ function drawState3D() {
     displayModeBar: true,
     modeBarButtonsToRemove: ["toImage", "sendDataToCloud", "lasso3d", "select2d", "hoverClosest3d", "resetCameraLastSave3d"]
   }).then(graph => {
+    const saveCamera = () => {
+      const camera = graph.layout?.scene?.camera;
+      if (!camera) return;
+      stateCamera = JSON.parse(JSON.stringify(camera));
+      try { sessionStorage.setItem("market-state-camera", JSON.stringify(stateCamera)); } catch (_) {}
+    };
     graph.on("plotly_relayout", event => {
-      if (event["scene.camera"]) stateCamera = JSON.parse(JSON.stringify(event["scene.camera"]));
+      if (event["scene.camera"]) graph.layout.scene.camera = event["scene.camera"];
+      saveCamera();
+    });
+    graph.querySelectorAll(".modebar-btn").forEach(button => {
+      button.addEventListener("pointerdown", () => {
+        const title = (button.getAttribute("data-title") || button.getAttribute("aria-label") || "").toLowerCase();
+        if (!title.includes("reset") && !title.includes("home")) saveCamera();
+      });
+      button.addEventListener("click", () => {
+        const title = (button.getAttribute("data-title") || button.getAttribute("aria-label") || "").toLowerCase();
+        if (title.includes("reset") || title.includes("home")) return;
+        requestAnimationFrame(() => Plotly.relayout(graph, { "scene.camera": stateCamera }));
+      });
     });
   });
 }
