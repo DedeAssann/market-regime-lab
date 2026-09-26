@@ -274,7 +274,12 @@ function drawState3D() {
     },
     font: { family: "Inter, system-ui, sans-serif", color: "#8fa1b2" },
     hoverlabel: { bgcolor: "#172230", bordercolor: "#344557", font: { color: "#eaf2f7", size: 12 } }
-  }, { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["toImage", "sendDataToCloud", "lasso3d", "select2d"] });
+  }, {
+    responsive: true,
+    displaylogo: false,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ["toImage", "sendDataToCloud", "lasso3d", "select2d", "hoverClosest3d", "resetCameraLastSave3d"]
+  });
 }
 
 function syncStateControls() {
