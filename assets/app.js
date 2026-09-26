@@ -39,6 +39,15 @@ function volatilityColor(p) {
   return "#ff7183";
 }
 
+function supportsWebGL() {
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(window.WebGLRenderingContext && (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")));
+  } catch (_) {
+    return false;
+  }
+}
+
 function currentSlice() {
   if (!market) return [];
   const bars = Math.round(visibleDays * 6); // six H4 bars per day
@@ -228,6 +237,7 @@ function syncStateControls() {
 function drawState() {
   const container = document.getElementById("state-chart");
   if (typeof Plotly !== "undefined") Plotly.purge(container);
+  if (stateMode === "3d" && !supportsWebGL()) stateMode = "2d";
   syncStateControls();
   if (stateMode === "3d") drawState3D(); else drawState2D();
 }
