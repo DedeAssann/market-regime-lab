@@ -12,6 +12,8 @@ const COLORS = {
 let market = null;
 let visibleDays = 180;
 let stateMode = window.matchMedia("(max-width: 720px)").matches ? "2d" : "3d";
+const defaultStateCamera = { eye: { x: 1.55, y: 1.45, z: 1.08 } };
+let stateCamera = defaultStateCamera;
 const tooltip = document.getElementById("tooltip");
 
 const svgEl = (name, attrs = {}) => {
@@ -261,6 +263,7 @@ function drawState3D() {
   };
   const axis = (title) => ({ title: { text: title, font: { size: 11, color: "#8fa1b2" } }, color: "#8fa1b2", gridcolor: "rgba(143,161,178,.16)", zerolinecolor: "rgba(143,161,178,.34)", backgroundcolor: "rgba(8,13,19,.18)", showbackground: true, tickfont: { size: 10 } });
   Plotly.newPlot(container, [oldTrace, trajectory, currentTrace], {
+    uirevision: "market-state-camera-v1",
     margin: { l: 0, r: 0, t: 0, b: 0 },
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
@@ -269,7 +272,8 @@ function drawState3D() {
       xaxis: axis("Pente EMA / ATR"),
       yaxis: axis("RSI 14"),
       zaxis: axis("Distance prix–EMA / ATR"),
-      camera: { eye: { x: 1.55, y: 1.45, z: 1.08 } },
+      camera: stateCamera,
+      dragmode: "orbit",
       aspectmode: "cube"
     },
     font: { family: "Inter, system-ui, sans-serif", color: "#8fa1b2" },
@@ -279,6 +283,10 @@ function drawState3D() {
     displaylogo: false,
     displayModeBar: true,
     modeBarButtonsToRemove: ["toImage", "sendDataToCloud", "lasso3d", "select2d", "hoverClosest3d", "resetCameraLastSave3d"]
+  }).then(graph => {
+    graph.on("plotly_relayout", event => {
+      if (event["scene.camera"]) stateCamera = JSON.parse(JSON.stringify(event["scene.camera"]));
+    });
   });
 }
 
