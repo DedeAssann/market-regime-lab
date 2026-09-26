@@ -51,6 +51,11 @@ main { max-width: 1440px; margin: auto; padding: 0 34px 48px; }
 .line.ema { background: var(--amber); }
 .live-key { color: var(--muted); font-size: .75rem; display: flex; align-items: center; gap: 7px; }
 .live-key i { width: 9px; height: 9px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(110,231,198,.12); }
+.state-controls { display: flex; align-items: center; gap: 14px; }
+.view-toggle { display: flex; padding: 2px; border: 1px solid var(--border); border-radius: 8px; background: rgba(8,13,19,.55); }
+.view-toggle button { border: 0; background: transparent; color: var(--muted); padding: 5px 9px; border-radius: 5px; font-size: .72rem; cursor: pointer; }
+.view-toggle button:hover, .view-toggle button:focus-visible { color: var(--text); }
+.view-toggle button.active { color: var(--bg); background: var(--text); }
 .chart { position: relative; width: 100%; height: 388px; }
 .chart svg { width: 100%; height: 100%; overflow: visible; }
 .chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
@@ -73,6 +78,7 @@ main { max-width: 1440px; margin: auto; padding: 0 34px 48px; }
 .map-row strong { font-size: .88rem; }
 .map-row p { color: var(--muted); margin: 4px 0 0; font-size: .79rem; line-height: 1.45; }
 .arrow { color: var(--mint); font-size: 1.3rem; }
+.depth { color: var(--purple); font-size: 1.15rem; }
 .heat { width: 21px; height: 8px; margin-top: 7px; border-radius: 4px; background: linear-gradient(90deg, var(--blue), var(--amber), var(--red)); }
 .tooltip { position: fixed; z-index: 20; pointer-events: none; min-width: 168px; padding: 10px 12px; border-radius: 8px; background: #172230; border: 1px solid #344557; color: var(--text); box-shadow: 0 12px 35px rgba(0,0,0,.35); font-size: .75rem; line-height: 1.55; }
 .tooltip strong { display: block; margin-bottom: 3px; }
@@ -96,5 +102,7 @@ main { max-width: 1440px; margin: auto; padding: 0 34px 48px; }
   .chart { height: 345px; }
   .panel-heading { padding: 0 5px; }
   .legend { display: none; }
+  .state-controls { gap: 8px; }
+  .live-key { display: none; }
   .regime-strip { margin-left: 48px; margin-right: 13px; }
 }

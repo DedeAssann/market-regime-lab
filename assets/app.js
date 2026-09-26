@@ -11,6 +11,7 @@ const COLORS = {
 
 let market = null;
 let visibleDays = 180;
+let stateMode = window.matchMedia("(max-width: 720px)").matches ? "2d" : "3d";
 const tooltip = document.getElementById("tooltip");
 
 const svgEl = (name, attrs = {}) => {
@@ -128,9 +129,13 @@ function drawPrice() {
   data.forEach(d => { const s = document.createElement("span"); s.style.flex = "1"; s.style.background = COLORS[d.regime]; strip.appendChild(s); });
 }
 
-function drawState() {
+function stateData() {
   const source = currentSlice().filter(d => Number.isFinite(d.slope_atr) && Number.isFinite(d.rsi));
-  const data = source.slice(-90);
+  return { source, data: source.slice(-90) };
+}
+
+function drawState2D() {
+  const { source, data } = stateData();
   const c = baseChart(document.getElementById("state-chart"), { top: 12, right: 18, bottom: 32, left: 48 });
   const { svg, width, height, margins: m, plotW, plotH } = c;
   const maxAbs = Math.max(.12, ...source.map(d => Math.abs(d.slope_atr))) * 1.08;
@@ -152,12 +157,92 @@ function drawState() {
   });
 }
 
+function drawState3D() {
+  if (typeof Plotly === "undefined") {
+    stateMode = "2d";
+    syncStateControls();
+    drawState2D();
+    return;
+  }
+  const { data } = stateData();
+  const container = document.getElementById("state-chart");
+  container.innerHTML = "";
+  const zValues = data.map(d => (d.close - d.ema50) / d.atr);
+  const commonHover = data.map(d => [fmtDate(d.time), d.regime, d.atr_percentile]);
+  const trajectory = {
+    type: "scatter3d",
+    mode: "lines+markers",
+    x: data.map(d => d.slope_atr),
+    y: data.map(d => d.rsi),
+    z: zValues,
+    customdata: commonHover,
+    line: { color: "rgba(234,242,247,.32)", width: 3 },
+    marker: {
+      size: 3.2,
+      color: data.map(d => d.atr_percentile),
+      cmin: 0, cmax: 100,
+      colorscale: [[0,"#6ca9ff"],[.5,"#f6c453"],[1,"#ff7183"]],
+      opacity: .72,
+      showscale: false
+    },
+    hovertemplate: "<b>%{customdata[0]}</b><br>Pente : %{x:.3f} ATR/bar<br>RSI : %{y:.1f}<br>Distance : %{z:.2f} ATR<br>Volatilité : %{customdata[2]:.0f}e pct.<br>Régime : %{customdata[1]}<extra></extra>",
+    name: "Trajectoire"
+  };
+  const current = data.at(-1);
+  const currentTrace = {
+    type: "scatter3d",
+    mode: "markers",
+    x: [current.slope_atr], y: [current.rsi], z: [(current.close - current.ema50) / current.atr],
+    customdata: [[fmtDate(current.time), current.regime, current.atr_percentile]],
+    marker: { size: 8, color: volatilityColor(current.atr_percentile), line: { color: "#eaf2f7", width: 3 }, opacity: 1 },
+    hovertemplate: "<b>État actuel</b><br>%{customdata[0]}<br>Pente : %{x:.3f} ATR/bar<br>RSI : %{y:.1f}<br>Distance : %{z:.2f} ATR<br>Régime : %{customdata[1]}<extra></extra>",
+    name: "État actuel"
+  };
+  const axis = (title) => ({ title: { text: title, font: { size: 11, color: "#8fa1b2" } }, color: "#8fa1b2", gridcolor: "rgba(143,161,178,.16)", zerolinecolor: "rgba(143,161,178,.34)", backgroundcolor: "rgba(8,13,19,.18)", showbackground: true, tickfont: { size: 10 } });
+  Plotly.newPlot(container, [trajectory, currentTrace], {
+    margin: { l: 0, r: 0, t: 0, b: 0 },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+    showlegend: false,
+    scene: {
+      xaxis: axis("Pente EMA / ATR"),
+      yaxis: axis("RSI 14"),
+      zaxis: axis("Distance prix–EMA / ATR"),
+      camera: { eye: { x: 1.55, y: 1.45, z: 1.08 } },
+      aspectmode: "cube"
+    },
+    font: { family: "Inter, system-ui, sans-serif", color: "#8fa1b2" },
+    hoverlabel: { bgcolor: "#172230", bordercolor: "#344557", font: { color: "#eaf2f7", size: 12 } }
+  }, { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["toImage", "sendDataToCloud", "lasso3d", "select2d"] });
+}
+
+function syncStateControls() {
+  document.querySelectorAll("[data-state-mode]").forEach(button => {
+    const active = button.dataset.stateMode === stateMode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  document.getElementById("axis-help").hidden = stateMode === "3d";
+}
+
+function drawState() {
+  const container = document.getElementById("state-chart");
+  if (typeof Plotly !== "undefined") Plotly.purge(container);
+  syncStateControls();
+  if (stateMode === "3d") drawState3D(); else drawState2D();
+}
+
 function render() { updateSummary(); drawPrice(); drawState(); }
 
 document.querySelectorAll("[data-range]").forEach(button => button.addEventListener("click", () => {
   visibleDays = Number(button.dataset.range);
   document.querySelectorAll("[data-range]").forEach(b => { b.classList.toggle("active", b === button); b.setAttribute("aria-pressed", b === button ? "true" : "false"); });
   drawPrice(); drawState();
+}));
+
+document.querySelectorAll("[data-state-mode]").forEach(button => button.addEventListener("click", () => {
+  stateMode = button.dataset.stateMode;
+  drawState();
 }));
 
 fetch("data/market.json", { cache: "no-store" })
