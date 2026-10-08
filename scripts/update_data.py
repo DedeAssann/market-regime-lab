@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch EUR/USD H4 candles and compute an interpretable market regime.
+"""Fetch EUR/USD candles across supported intervals and compute market regimes.
 
 Only completed candles are included. With --demo, a deterministic synthetic
 series is generated so the dashboard can be developed without credentials.
@@ -19,13 +19,17 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "data" / "market.json"
+INTERVALS = {
+    "30min": {"duration": timedelta(minutes=30), "output": "market-30min.json", "count": 5000},
+    "1h": {"duration": timedelta(hours=1), "output": "market-1h.json", "count": 5000},
+    "4h": {"duration": timedelta(hours=4), "output": "market-4h.json", "count": 2200},
+}
 
 
-def fetch_twelve_data(api_key: str, symbol: str = "EUR/USD", outputsize: int = 2200) -> list[dict]:
+def fetch_twelve_data(api_key: str, interval: str, duration: timedelta, symbol: str = "EUR/USD", outputsize: int = 2200) -> list[dict]:
     query = urllib.parse.urlencode({
         "symbol": symbol,
-        "interval": "4h",
+        "interval": interval,
         "outputsize": outputsize,
         "timezone": "UTC",
         "apikey": api_key,
@@ -48,25 +52,25 @@ def fetch_twelve_data(api_key: str, symbol: str = "EUR/USD", outputsize: int = 2
         })
     # Twelve Data can return the currently forming candle: exclude it.
     now = datetime.now(timezone.utc)
-    return [row for row in rows if row["time"] + timedelta(hours=4) <= now]
+    return [row for row in rows if row["time"] + duration <= now]
 
 
-def demo_candles(count: int = 2200) -> list[dict]:
-    rng = random.Random(20260924)
-    start = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(hours=4 * count)
+def demo_candles(count: int = 2200, duration: timedelta = timedelta(hours=4)) -> list[dict]:
+    rng = random.Random(20260924 + int(duration.total_seconds()))
+    start = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - duration * count
     price = 1.082
     rows = []
     regimes = [(420, .000055, .00075), (300, -.00004, .0009), (360, .000005, .00042), (500, .000075, .00078), (300, -.00009, .00105), (320, .000035, .00062)]
     parameters = []
-    for duration, drift, vol in regimes:
-        parameters.extend([(drift, vol)] * duration)
+    for regime_length, drift, vol in regimes:
+        parameters.extend([(drift, vol)] * regime_length)
     parameters = (parameters * math.ceil(count / len(parameters)))[:count]
     for i, (drift, vol) in enumerate(parameters):
         open_ = price
         shock = rng.gauss(drift, vol)
         close = max(.85, open_ + shock)
         wick = abs(rng.gauss(0, vol * .42))
-        rows.append({"time": start + timedelta(hours=4 * i), "open": open_, "high": max(open_, close) + wick, "low": min(open_, close) - wick * .85, "close": close})
+        rows.append({"time": start + duration * i, "open": open_, "high": max(open_, close) + wick, "low": min(open_, close) - wick * .85, "close": close})
         price = close
     return rows
 
@@ -144,13 +148,24 @@ def main() -> None:
     parser = argparse.ArgumentParser(); parser.add_argument("--demo", action="store_true"); args = parser.parse_args()
     api_key = os.getenv("TWELVE_DATA_API_KEY", "")
     demo = args.demo or not api_key
-    rows = demo_candles() if demo else fetch_twelve_data(api_key)
-    candles = enrich(rows)
-    if len(candles) < 100: raise RuntimeError("Historique insuffisant après calcul des indicateurs")
-    payload = {"symbol": "EUR/USD", "interval": "4h", "source": "synthetic-demo" if demo else "Twelve Data", "demo": demo, "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), "candles": candles}
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"Wrote {len(candles)} completed candles to {OUTPUT}")
+    output_dir = ROOT / "data"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    for interval, config in INTERVALS.items():
+        rows = demo_candles(config["count"], config["duration"]) if demo else fetch_twelve_data(
+            api_key, interval, config["duration"], outputsize=config["count"]
+        )
+        candles = enrich(rows)
+        if len(candles) < 100:
+            raise RuntimeError(f"Historique {interval} insuffisant après calcul des indicateurs")
+        payload = {
+            "symbol": "EUR/USD", "interval": interval,
+            "source": "synthetic-demo" if demo else "Twelve Data", "demo": demo,
+            "generated_at": generated_at, "candles": candles,
+        }
+        output = output_dir / config["output"]
+        output.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        print(f"Wrote {len(candles)} completed {interval} candles to {output}")
 
 
 if __name__ == "__main__": main()
