@@ -10,7 +10,14 @@ const COLORS = {
 };
 
 let market = null;
-let visibleDays = 180;
+let visibleDays = 90;
+let timeframe = "30min";
+let loadSequence = 0;
+const TIMEFRAMES = {
+  "30min": { label: "30 min", file: "data/market-30min.json" },
+  "1h": { label: "1 h", file: "data/market-1h.json" },
+  "4h": { label: "4 h", file: "data/market-4h.json" }
+};
 let stateMode = window.matchMedia("(max-width: 720px)").matches ? "2d" : "3d";
 const defaultStateCamera = { eye: { x: 1.55, y: 1.45, z: 1.08 } };
 let stateCamera = defaultStateCamera;
@@ -52,8 +59,8 @@ function supportsWebGL() {
 
 function currentSlice() {
   if (!market) return [];
-  const bars = Math.round(visibleDays * 6); // six H4 bars per day
-  return market.candles.slice(-bars);
+  const cutoff = new Date(market.candles.at(-1).time).getTime() - visibleDays * 86400000;
+  return market.candles.filter(d => new Date(d.time).getTime() >= cutoff);
 }
 
 function updateSummary() {
@@ -70,7 +77,7 @@ function updateSummary() {
   document.getElementById("rsi-value").textContent = d.rsi.toFixed(1);
   document.getElementById("atr-value").textContent = `${Math.round(d.atr_percentile)}e`;
   document.getElementById("atr-detail").textContent = `percentile · ATR ${(d.atr * 10000).toFixed(1)} pips`;
-  document.getElementById("freshness").innerHTML = `<span class="status-dot" style="background:${market.demo ? "var(--amber)" : "var(--mint)"}"></span>${market.demo ? "Données de démonstration" : "Données actualisées"} · ${fmtDate(market.generated_at)}`;
+  document.getElementById("freshness").innerHTML = `<span class="status-dot" style="background:${market.demo ? "var(--amber)" : "var(--mint)"}"></span>${market.demo ? "Données de démonstration" : "Données actualisées"} · ${TIMEFRAMES[timeframe].label} · ${fmtDate(market.generated_at)}`;
 
   const reasons = [
     `Le prix est ${d.close >= d.ema50 ? "au-dessus" : "en dessous"} de l’EMA 50 (${d.close.toFixed(5)} contre ${d.ema50.toFixed(5)}).`,
@@ -338,10 +345,42 @@ document.querySelectorAll("[data-state-mode]").forEach(button => button.addEvent
   drawState();
 }));
 
-fetch("data/market.json", { cache: "no-store" })
-  .then(r => { if (!r.ok) throw new Error("Données indisponibles"); return r.json(); })
-  .then(data => { market = data; render(); })
-  .catch(err => { document.getElementById("freshness").textContent = err.message; });
+function syncTimeframeControls() {
+  document.querySelectorAll("[data-timeframe]").forEach(button => {
+    const active = button.dataset.timeframe === timeframe;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  document.getElementById("timeframe-label").textContent = `· ${TIMEFRAMES[timeframe].label}`;
+}
+
+async function loadMarket(nextTimeframe) {
+  const sequence = ++loadSequence;
+  timeframe = nextTimeframe;
+  syncTimeframeControls();
+  document.getElementById("freshness").innerHTML = `<span class="status-dot"></span>Chargement ${TIMEFRAMES[timeframe].label}…`;
+  try {
+    const response = await fetch(`${TIMEFRAMES[timeframe].file}?t=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Données indisponibles");
+    const data = await response.json();
+    if (sequence !== loadSequence) return;
+    market = data;
+    try { localStorage.setItem("market-timeframe", timeframe); } catch (_) {}
+    render();
+  } catch (err) {
+    if (sequence === loadSequence) document.getElementById("freshness").textContent = err.message;
+  }
+}
+
+document.querySelectorAll("[data-timeframe]").forEach(button => button.addEventListener("click", () => {
+  if (button.dataset.timeframe !== timeframe) loadMarket(button.dataset.timeframe);
+}));
+
+try {
+  const savedTimeframe = localStorage.getItem("market-timeframe");
+  if (TIMEFRAMES[savedTimeframe]) timeframe = savedTimeframe;
+} catch (_) {}
+loadMarket(timeframe);
 
 let resizeTimer;
 addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => market && render(), 120); });

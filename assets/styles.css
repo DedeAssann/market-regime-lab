@@ -37,11 +37,13 @@ main { max-width: 1440px; margin: auto; padding: 0 34px 48px; }
 .metric-card { padding: 19px; min-height: 124px; display: flex; flex-direction: column; justify-content: center; }
 .metric-card strong { font-size: 1.55rem; font-variant-numeric: tabular-nums; margin: 4px 0; }
 .metric-card span { color: var(--muted); font-size: .78rem; }
-.range-picker { margin: 18px 0 10px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; color: var(--muted); font-size: .8rem; }
-.range-picker span { margin-right: 8px; }
-.range-picker button { color: var(--muted); background: transparent; border: 0; border-radius: 7px; padding: 7px 10px; cursor: pointer; }
-.range-picker button:hover, .range-picker button:focus-visible { color: var(--text); background: var(--panel-2); }
-.range-picker button.active { color: var(--bg); background: var(--text); }
+.chart-filters { margin: 18px 0 10px; display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.range-picker, .timeframe-picker { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: .8rem; }
+.range-picker span, .timeframe-picker span { margin-right: 8px; }
+.range-picker button, .timeframe-picker button { color: var(--muted); background: transparent; border: 0; border-radius: 7px; padding: 7px 10px; cursor: pointer; }
+.range-picker button:hover, .range-picker button:focus-visible, .timeframe-picker button:hover, .timeframe-picker button:focus-visible { color: var(--text); background: var(--panel-2); }
+.range-picker button.active, .timeframe-picker button.active { color: var(--bg); background: var(--text); }
+.timeframe-picker { padding: 3px; border: 1px solid var(--border); border-radius: 9px; background: rgba(8,13,19,.42); }
 .chart-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(350px, 1fr); gap: 12px; }
 .chart-panel { min-height: 485px; padding: 18px; overflow: hidden; }
 .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 10px; }
@@ -133,4 +135,6 @@ main { max-width: 1440px; margin: auto; padding: 0 34px 48px; }
   .state-panel .modebar-container { top: 5px !important; right: 5px !important; }
   .state-panel .modebar-btn { width: 28px !important; height: 28px !important; padding: 6px !important; }
   .regime-strip { margin-left: 48px; margin-right: 13px; }
+  .chart-filters { align-items: flex-start; }
+  .range-picker, .timeframe-picker { width: 100%; justify-content: flex-end; }
 }
