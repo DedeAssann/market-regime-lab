@@ -3,7 +3,8 @@ name: Update market data and deploy dashboard
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * 1-5"
+    # Seven minutes after every M30 close, Monday through Friday (UTC).
+    - cron: "7,37 * * * 1-5"
   push:
     branches: [main]
 
@@ -27,7 +28,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Update completed H4 candles
+      - name: Update completed M30, H1 and H4 candles
         env:
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
         run: python scripts/update_data.py
