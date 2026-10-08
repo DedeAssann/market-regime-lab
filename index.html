@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Tableau de bord visuel de détection des régimes de marché pour EUR/USD en H4.">
+  <meta name="description" content="Tableau de bord visuel multi-intervalle de détection des régimes de marché pour EUR/USD.">
   <title>Market Regime Lab</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link rel="stylesheet" href="assets/styles.css?v=vectors-1">
+  <link rel="stylesheet" href="assets/styles.css?v=timeframes-1">
 </head>
 <body>
   <header class="topbar">
     <div>
       <p class="eyebrow">MARKET REGIME LAB</p>
-      <h1>EUR/USD <span>· H4</span></h1>
+      <h1>EUR/USD <span id="timeframe-label">· 30 min</span></h1>
     </div>
     <div class="freshness" id="freshness"><span class="status-dot"></span>Chargement des données…</div>
   </header>
@@ -46,12 +46,20 @@
       </article>
     </section>
 
-    <nav class="range-picker" aria-label="Période affichée">
-      <span>Période</span>
-      <button type="button" data-range="90">3 mois</button>
-      <button type="button" data-range="180" class="active" aria-pressed="true">6 mois</button>
-      <button type="button" data-range="365">1 an</button>
-    </nav>
+    <div class="chart-filters">
+      <nav class="timeframe-picker" aria-label="Intervalle des bougies">
+        <span>Intervalle</span>
+        <button type="button" data-timeframe="30min" class="active" aria-pressed="true">30 min</button>
+        <button type="button" data-timeframe="1h">1 h</button>
+        <button type="button" data-timeframe="4h">4 h</button>
+      </nav>
+      <nav class="range-picker" aria-label="Période affichée">
+        <span>Période</span>
+        <button type="button" data-range="30">1 mois</button>
+        <button type="button" data-range="90" class="active" aria-pressed="true">3 mois</button>
+        <button type="button" data-range="180">6 mois</button>
+      </nav>
+    </div>
 
     <section class="chart-grid">
       <article class="chart-panel price-panel">
@@ -104,6 +112,6 @@
 
   <div class="tooltip" id="tooltip" hidden></div>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
-  <script src="assets/app.js?v=vectors-1" defer></script>
+  <script src="assets/app.js?v=timeframes-1" defer></script>
 </body>
 </html>

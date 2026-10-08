@@ -1,6 +1,6 @@
 # Market Regime Lab
 
-Tableau de bord visuel et pédagogique de détection des régimes de marché pour **EUR/USD en H4**.
+Tableau de bord visuel et pédagogique de détection des régimes de marché pour **EUR/USD en M30, H1 et H4**.
 
 ## Ce que montre la V0
 
@@ -10,7 +10,7 @@ Tableau de bord visuel et pédagogique de détection des régimes de marché pou
 - la volatilité encodée par la couleur ;
 - une explication lisible de la dernière classification.
 
-Le système n'envoie aucun ordre. Il travaille uniquement sur les bougies H4 clôturées.
+Le système n'envoie aucun ordre. Il travaille uniquement sur les bougies clôturées de l'intervalle choisi.
 
 ## Lancer localement
 
@@ -35,7 +35,7 @@ python -m unittest discover -s tests -v
 4. Dans **Settings → Pages**, choisir **GitHub Actions** comme source.
 5. Lancer manuellement le workflow une première fois.
 
-Le workflow s'exécute ensuite à la minute 17 de chaque heure, du lundi au vendredi. La décision de régime reste fondée sur la dernière bougie H4 clôturée.
+Le workflow s'exécute ensuite à 7 et 37 minutes après chaque heure, du lundi au vendredi. Cette marge permet de récupérer la dernière bougie M30 clôturée ; GitHub Actions peut occasionnellement démarrer plus tard.
 
 ## Important
 
